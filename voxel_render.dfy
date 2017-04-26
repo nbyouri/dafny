@@ -63,12 +63,14 @@ class Couverture {
         var i := 0;
         assert r.Length > 0;
         while (i < r.Length)
-            invariant ( (0 <= i <= r.Length) && (forall k :int :: k>=0 && k<i ==> (r[k].x+r[k].w <= size_x) && (r[k].y+r[k].h <= size_y)) && (size_x>=1 && size_y>=1));
+            invariant ((0 <= i <= r.Length) && (forall k :int :: k>=0 &&
+            k<i ==> (r[k].x+r[k].w <= size_x) && (r[k].y+r[k].h <= size_y)) &&
+            (size_x>=1 && size_y>=1));
         {
-            if (r[i].x+r[i].w > size_x){
+            if (r[i].x+r[i].w > size_x) {
                 size_x := r[i].x+r[i].w;
             }
-            if (r[i].y+r[i].h > size_y){
+            if (r[i].y+r[i].h > size_y) {
                 size_y := r[i].y+r[i].h;
             }
             i := i + 1;
@@ -96,10 +98,7 @@ class Couverture {
         while (i < r.Length)
             invariant 0 <= i <= r.Length;
         {
-            if (r[i].x < trects.Length0 && r[i].y < trects.Length1)
-            {
-                trects[r[i].x,r[i].y] := r[i];
-            }
+            trects[r[i].x,r[i].y] := r[i];
             i := i + 1;
         }
         rects := trects;
@@ -119,23 +118,22 @@ class Couverture {
 	ensures ok()
     {
 	var horizImprove:bool;
-	if (rects.Length0 >= rects.Length1){
+	if (rects.Length0 >= rects.Length1) {
             horizImprove := true;
-        }
-        else{
+        } else {
             horizImprove := false;
         }
-        if(rects != null && rects.Length0>0 && rects.Length1>0){
+        if(rects != null && rects.Length0>0 && rects.Length1>0) {
             var hack := rects.Length0 * rects.Length1;
 	    var opti := false;
-            while(!opti && hack > 0){
+            while (!opti && hack > 0) {
                 opti := improve(horizImprove);
                 hack := hack - 1;
             }
             opti := false;
             horizImprove := !horizImprove;
             hack := rects.Length0 * rects.Length1;
-            while(!opti && hack>0){
+            while (!opti && hack>0) {
                 opti := improve(horizImprove);
                 hack := hack - 1;
             }
@@ -152,18 +150,16 @@ class Couverture {
         var hMerge := a.x + a.w == b.x && a.h == b.h && a.y == b.y;
         // Cas vertical
         var vMerge := a.x == b.x && a.w == b.w && a.y + a.h == b.y;
-        if (hMerge || vMerge){
+        if (hMerge || vMerge) {
             ret := true;
-        }
-        else{
+        } else {
             //Cas horizontal
             hMerge := b.x + b.w == a.x && b.h == a.h && b.y == a.y;
             // Cas vertical
             vMerge := b.x == a.x && b.w == a.w && b.y + b.h == a.y;
-            if (hMerge || vMerge){
+            if (hMerge || vMerge) {
                 ret := true;
-            }
-            else{
+            } else {
                 ret := false;
             }
         }
@@ -180,14 +176,16 @@ class Couverture {
     method merge(a: Rectangle, b: Rectangle, horizImprove:bool) returns (ret : Rectangle)
         requires ok()
         requires rects != null
+        //requires a.x < rects.Length0 && b.x < rects.Length0
+        //requires b.x < rects.Length1 && b.y < rects.Length1
         modifies rects
         ensures ok()
     {
-        if(rects != null && rects.Length0>0 && rects.Length1>0 &&
-            a.x < rects.Length0 && b.x < rects.Length0 && a.y < rects.Length1 &&
-            b.y < rects.Length1 && 0<=a.x && 0<=a.y && 0<=b.x && 0<=b.y) {
+        if (a.x < rects.Length0 && b.x < rects.Length0 &&
+            a.y < rects.Length1 && b.y < rects.Length1 &&
+            0 <= a.x && 0 <= a.y && 0 <= b.x && 0 <= b.y) {
             if (horizImprove) {
-                if(a.x < b.x) {
+                if (a.x < b.x) {
                     rects[a.x,a.y] := Rectangle(a.labe,a.x,a.y,a.w + b.w,a.h,true);
                     rects[b.x,b.y] := Rectangle(b.labe,b.x,b.y,b.w,b.h,false);
                     ret := rects[a.x,a.y];
@@ -197,7 +195,7 @@ class Couverture {
                     ret := rects[b.x,b.y];
                 }
             } else {
-                if(a.y < b.y){
+                if (a.y < b.y){
                     rects[b.x,b.y] := Rectangle(b.labe,b.x,b.y,b.w,b.h,false);
                     rects[a.x,a.y] := Rectangle(a.labe,a.x,a.y,a.w,a.h+b.h,true);
                     ret := rects[a.x,a.y];
@@ -226,33 +224,29 @@ class Couverture {
     {
         //init
         var i,j,hack := 0,0,rects.Length0*rects.Length1;
-        if( 0<= i < rects.Length0 && 0<= j < rects.Length1){
-            var rect1 :Rectangle;
-            if(rects[i,j].isRoot){
-                rect1 := rects[i,j];
-            }
-            else{
-                rect1 := nextRectangle(rects[i,j], horizImprove);
-            }
-            var rect2 :Rectangle := nextRectangle(rect1, horizImprove);
-            var canMerg :bool := canMerge(rect1,rect2);
+        var rect1 :Rectangle;
+        if (rects[i,j].isRoot){
+            rect1 := rects[i,j];
+        } else {
+            rect1 := nextRectangle(rects[i,j], horizImprove);
+        }
+        var rect2 :Rectangle := nextRectangle(rect1, horizImprove);
+        var canMerg :bool := canMerge(rect1,rect2);
 
-            //loop
-            while(!canMerg && rect2.isRoot && hack > 0){
-                rect1 := rect2;
-                rect2 := nextRectangle(rect1, horizImprove);
-                canMerg := canMerge(rect1,rect2);
-                hack := hack - 1;
-            }
+        //loop
+        while(!canMerg && rect2.isRoot && hack > 0){
+            rect1 := rect2;
+            rect2 := nextRectangle(rect1, horizImprove);
+            canMerg := canMerge(rect1,rect2);
+            hack := hack - 1;
+        }
 
-            //we found a canMerge OR the cov is optimized
-            if(rect2.isRoot){
-                var rect3 := merge(rect1, rect2, horizImprove); 
-                optimized := false;
-            }
-            else{
-                optimized := true;
-            }
+        //we found a canMerge OR the cov is optimized
+        if (rect2.isRoot) {
+            var rect3 := merge(rect1, rect2, horizImprove); 
+            optimized := false;
+        } else {
+            optimized := true;
         }
     }
 
@@ -265,18 +259,16 @@ class Couverture {
         ensures ok()
     {
         //Cas de base, parcours horizontal
-        if(rects != null && rects.Length0>0 && rects.Length1>0
-            && 0 <= r.y < rects.Length1 && 0 <= r.x < rects.Length0)
-        {
-            if (horizImprove){
+        if  (0 <= r.y < rects.Length1 && 0 <= r.x < rects.Length0) {
+            if (horizImprove) {
                 var ix := r.x + 1;
                 var iy := r.y;
                 var found := false;
-                while(iy < rects.Length1 && !found)
+                while (iy < rects.Length1 && !found)
                     invariant 0 <= iy <= rects.Length1;
                     invariant 0 <= ix <= rects.Length0;
                 {
-                    while(ix<rects.Length0 && !found)
+                    while (ix<rects.Length0 && !found)
                         invariant 0 <= ix <= rects.Length0;
                     {
                         if(rects[ix,iy].isRoot){
@@ -288,22 +280,21 @@ class Couverture {
                     ix := 0;
                     iy := iy + 1;
                 }
-                if(!found){
+                if (!found) {
                     ret := Rectangle("endOfCouv",0,0,1,1,false);
                 }
-            }
-            else{
+            } else {
                 var ix := r.x;
                 var iy := r.y+1;
                 var found := false;
-                while(ix < rects.Length0 && !found)
+                while (ix < rects.Length0 && !found)
                     invariant 0 <= iy <= rects.Length1;
                     invariant 0 <= ix <= rects.Length0;
                 {
-                    while(iy<rects.Length1 && !found)
+                    while (iy < rects.Length1 && !found)
                         invariant 0 <= iy <= rects.Length1;
                     {
-                        if(rects[ix,iy].isRoot){
+                        if (rects[ix,iy].isRoot) {
                             found := true;
                             ret := rects[ix,iy];
                         }
@@ -312,12 +303,11 @@ class Couverture {
                     iy := 0;
                     ix := ix + 1;
                 }
-                if(!found){
+                if (!found) {
                     ret := Rectangle("endOfCouv",0,0,1,1,false);
                 }
             }
-        }
-        else{
+        } else {
             ret := Rectangle("rxyOutOfBounds",0,0,1,1,false);
         }
     }
@@ -327,13 +317,13 @@ class Couverture {
     */
     method dump()
     {
-        if(rects != null){
+        if (rects != null) {
             print "\n";
             var y := 0;
             while (y < rects.Length1)
             {
                 var x := 0;
-                while(x < rects.Length0)
+                while (x < rects.Length0)
                 {
                     print "rects[" , x , "," , y , "] = " , rects[x,y].labe, "(",rects[x,y].isRoot,") | ";
                     x := x+1;
