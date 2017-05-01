@@ -22,26 +22,37 @@ class Couverture
         rects.Length1 > 0
     }
 
-    predicate inCover(x: int, y: int)
-        reads rects, this
-        requires ok()
-        ensures ok()
+    predicate method rectInCover(cover: array2<Rectangle>, r: Rectangle)
+        reads cover
+        requires cover != null
+        requires cover.Length0 > 0
+        requires cover.Length1 > 0
     {
-        0 <= x < rects.Length0 &&
-        0 <= y < rects.Length1
-    }
-
-    predicate rectInCover(r:Rectangle)
-        reads rects, this
-        requires ok()
-        requires okRect(r)
-        ensures ok()
-        ensures okRect(r)
-    {
-        0 <= r.x < rects.Length0 &&
-        0 <= r.y < rects.Length1
+        0 <= r.x < cover.Length0 &&
+        0 <= r.y < cover.Length1
         // 0 <= (x + rects[x,y].w) < rects.Length0 &&
         // 0 <= (y + rects[x,y].h) < rects.Length1
+    }
+
+    predicate method okRects(cover: array2<Rectangle>)
+        reads cover
+        requires cover != null
+        requires cover.Length0 > 0
+        requires cover.Length1 > 0
+    {
+        forall x :: 0 <= x < cover.Length0 ==> okRect(cover[x,0]) &&
+        forall y :: 0 <= y < cover.Length1 ==> okRect(cover[0,y])
+    }
+
+    predicate method rectsInCover(cover: array2<Rectangle>)
+        reads  cover
+        requires cover != null
+        requires cover.Length0 > 0
+        requires cover.Length1 > 0
+        requires okRects(cover)
+    {
+        forall x :: 0 <= x < cover.Length0 ==> rectInCover(cover, cover[x,0]) &&
+        forall y :: 0 <= y < cover.Length1 ==> rectInCover(cover, cover[0,y])
     }
 
     /* Le constructeur de la classe Couverture prend un array de Rectangle en
@@ -60,6 +71,8 @@ class Couverture
         modifies this
         ensures fresh(rects)
         ensures ok()
+        // ensures rectsInCover(rects) ?? ??
+        // ensures okRects(rects) ?? ?? should pass
     {
         //On trouve les dimensions x et y nécessaires pour notre Couverture
         var size_x,size_y := 1,1;
@@ -90,6 +103,7 @@ class Couverture
                 invariant 0 <= j <= size_y;
             {
                 trects[i,j] := Rectangle("placeholder",i,j,1,1,false);
+                assert okRect(trects[i,j]); // ok
                 j := j + 1;
             }
             i := i + 1;
@@ -101,8 +115,31 @@ class Couverture
             invariant 0 <= i <= r.Length;
         {
             trects[r[i].x,r[i].y] := r[i];
+            assert okRect(trects[r[i].x,r[i].y]); // ok
             i := i + 1;
         }
+
+        // wtf
+        i := 0;
+        while (i < size_x)
+            invariant 0 <= i <= size_x;
+        {
+            j := 0;
+            while (j < size_y)
+                invariant 0 <= j <= size_y;
+            {
+                var r := trects[i,j];
+                var ok := okRect(r);
+                var ic := rectInCover(trects, r);
+                toString(r);
+                print ",",ok,",",ic; // show trues yet is assert violation??
+                print "\n";
+                // assert okRect(r) && rectInCover(trects, r); // assert violation wtf
+                j := j + 1;
+            }
+            i := i + 1;
+        }
+
         rects := trects;
     }
 
@@ -262,6 +299,7 @@ class Couverture
         requires ok()
         // requires okRect(r)
         // requires rectInCover(r)
+        // requires inCover(r.x, r.y)
         ensures ok()
         // ensures okRect(ret)
     {
@@ -322,6 +360,11 @@ class Couverture
     /*
     * Affiche une Couverture dans le terminal
     */
+    method toString(r: Rectangle)
+    {
+        print r.x, ",", r.y, ",", r.w, ",", r.h, ",", r.labe, ",", r.isRoot;
+    }
+
     method dump()
         requires ok()
         ensures ok()
@@ -335,12 +378,11 @@ class Couverture
             while (x < rects.Length0)
                 invariant 0 <= x <= rects.Length0
             {
-                print "rects[" , x , "," , y , "] = " , rects[x,y].labe,
-                "(",rects[x,y].isRoot,") | ";
-                x := x+1;
+                toString(rects[x,y]);
+                x := x + 1;
             }
             print "\n";
-            y := y+1;
+            y := y + 1;
         }
     }
 }
@@ -369,7 +411,7 @@ method Main()
     var c := new Couverture(g);
     Test(c,g);
     print "\n";
-    c.dump();
+    // c.dump();
 
     // Couverture de 2x2
     var t1 := new Rectangle[4];
@@ -380,7 +422,8 @@ method Main()
     var couv1 :Couverture;
     couv1 := new Couverture(t1);
     Test(couv1,t1);
-    couv1.dump();
+    print "\n";
+    // couv1.dump();
 
     //Couverture de 3x3 avec un trou en bas à droite
     var t2 := new Rectangle[8];
@@ -395,7 +438,8 @@ method Main()
     var couv2 :Couverture;
     couv2 := new Couverture(t2);
     Test(couv2,t2);
-    couv2.dump();
+    print "\n";
+    // couv2.dump();
 
     //Couverture de 2x2 avec deux trous déjà optimisée
     var t3 := new Rectangle[2];
@@ -404,5 +448,5 @@ method Main()
     var couv3 :Couverture;
     couv3 := new Couverture(t3);
     Test(couv3,t3);
-    couv3.dump();
+    // couv3.dump();
 }
