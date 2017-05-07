@@ -26,7 +26,8 @@ class Couverture
         requires ok()
         reads this, rects
     {
-        forall i,j :: 0 <= i < rects.Length0 && 0 <= j < rects.Length1 ==> okRect(rects[i,j])
+        forall i,j :: 0 <= i < rects.Length0 && 0 <= j < rects.Length1
+          ==> okRect(rects[i,j])
     }
 
     predicate method rectInCover(cover: array2<Rectangle>, r: Rectangle)
@@ -47,8 +48,8 @@ class Couverture
         requires cover.Length0 > 0
         requires cover.Length1 > 0
     {
-        forall x :: 0 <= x < cover.Length0 ==> okRect(cover[x,0]) &&
-        forall y :: 0 <= y < cover.Length1 ==> okRect(cover[0,y])
+        forall i,j :: 0 <= i < cover.Length0 && 0 <= j < cover.Length1
+          ==> okRect(cover[i,j])
     }
 
     predicate method rectsInCover(cover: array2<Rectangle>)
@@ -58,8 +59,8 @@ class Couverture
         requires cover.Length1 > 0
         requires okRects(cover)
     {
-        forall x :: 0 <= x < cover.Length0 ==> rectInCover(cover, cover[x,0]) &&
-        forall y :: 0 <= y < cover.Length1 ==> rectInCover(cover, cover[0,y])
+        forall i,j :: 0 <= i < cover.Length0 && 0 <= j < cover.Length1
+          ==> rectInCover(cover, cover[i,j])
     }
 
     /* Le constructeur de la classe Couverture prend un array de Rectangle en
@@ -111,6 +112,7 @@ class Couverture
             {
                 trects[i,j] := Rectangle("placeholder",i,j,1,1,false);
                 assert okRect(trects[i,j]); // ok
+                assert rectInCover(trects, trects[i,j]);
                 j := j + 1;
             }
             i := i + 1;
@@ -123,6 +125,7 @@ class Couverture
         {
             trects[r[i].x,r[i].y] := r[i];
             assert okRect(trects[r[i].x,r[i].y]); // ok
+            assert rectInCover(trects, trects[r[i].x,r[i].y]);
             i := i + 1;
         }
 
@@ -133,6 +136,7 @@ class Couverture
         {
             j := 0;
             while (j < size_y)
+                invariant 0 <= i <= size_x;
                 invariant 0 <= j <= size_y;
             {
                 var r := trects[i,j];
@@ -141,6 +145,7 @@ class Couverture
                 toString(r);
                 print ",",ok,",",ic; // show trues yet is assert violation??
                 print "\n";
+                assert rectInCover(trects, trects[i,j]);
                 // assert okRect(r) && rectInCover(trects, r); // assert violation wtf
                 j := j + 1;
             }
@@ -279,16 +284,16 @@ class Couverture
         if (rects[i,j].isRoot) {
             rect1 := rects[i,j];
         } else {
-            assert okRect(rects[i,j]);
+            // NV // assert okRect(rects[i,j]);
             rect1 := nextRectangle(rects[i,j], horizImprove);
         }
-        assert okRect(rect1);
+        //NV// assert okRect(rect1);
         var rect2 :Rectangle := nextRectangle(rect1, horizImprove);
         var cm :bool := canMerge(rect1,rect2);
 
         while (!cm && rect2.isRoot && hack > 0){
             rect1 := rect2;
-            assert okRect(rect1);
+            //NV// assert okRect(rect1);
             rect2 := nextRectangle(rect1, horizImprove);
             cm := canMerge(rect1,rect2);
             hack := hack - 1;
@@ -309,10 +314,10 @@ class Couverture
     */
     method nextRectangle(r: Rectangle, horizImprove: bool) returns (ret:Rectangle)
         requires ok()
-        requires ok_bis()
+        // requires ok_bis()
         // requires okRect(r)
         // requires rectInCover(r)
-        // requires inCover(r.x, r.y)
+        // requires rectInCover(rects, r)
         ensures ok()
         //ensures okRect(ret)
     {
@@ -331,7 +336,7 @@ class Couverture
                     {
                         if (rects[ix,iy].isRoot) {
                             found := true;
-                            assert okRect(rects[ix,iy]);
+                            //NV// assert okRect(rects[ix,iy]);
                             ret := rects[ix,iy];
                         }
                         ix := ix + 1;
@@ -357,7 +362,7 @@ class Couverture
                     {
                         if (rects[ix,iy].isRoot) {
                             found := true;
-                            assert okRect(rects[ix,iy]);
+                            // NV//assert okRect(rects[ix,iy]);
                             ret := rects[ix,iy];
                         }
                         iy := iy + 1;
