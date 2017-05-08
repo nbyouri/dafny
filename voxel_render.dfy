@@ -79,8 +79,8 @@ class Couverture
         modifies this
         ensures fresh(rects)
         ensures ok()
-        // ensures rectsInCover(rects) ?? ??
-        // ensures okRects(rects) ?? ?? should pass
+        ensures okRects(rects)
+        ensures rectsInCover(rects)
     {
         //On trouve les dimensions x et y nécessaires pour notre Couverture
         var size_x,size_y := 1,1;
@@ -101,14 +101,18 @@ class Couverture
 
         //On initialise un array2<Rectangle> considérée "vide"
         var trects := new Rectangle[size_x,size_y];
+        assert(size_x>=1 && size_y>=1 && trects != null && trects.Length0>=1 && trects.Length1>=1);
         var j := 0;
         i := 0;
         while (i < size_x)
             invariant 0 <= i <= size_x;
+            invariant forall kx, ky :: 0 <= kx < i && 0 <= ky < size_y ==> okRect(trects[kx,ky]) && rectInCover(trects,trects[kx,ky]);
         {
             j := 0;
             while (j < size_y)
                 invariant 0 <= j <= size_y;
+                invariant forall kx :int, ky :int :: 0 <= kx < i && 0 <= ky < size_y ==> okRect(trects[kx,ky]) && rectInCover(trects,trects[kx,ky]);
+                invariant forall ky :int :: 0 <= ky < j ==> okRect(trects[i,ky]) && rectInCover(trects,trects[i,ky]);
             {
                 trects[i,j] := Rectangle("placeholder",i,j,1,1,false);
                 assert okRect(trects[i,j]); // ok
@@ -118,19 +122,22 @@ class Couverture
             i := i + 1;
         }
         i := 0;
+        assert okRects(trects) && rectsInCover(trects);
 
         //On remplit le array2 avec les Rectangle passés en paramètre
         while (i < r.Length)
             invariant 0 <= i <= r.Length;
+            invariant okRects(trects) && rectsInCover(trects);
         {
             trects[r[i].x,r[i].y] := r[i];
             assert okRect(trects[r[i].x,r[i].y]); // ok
             assert rectInCover(trects, trects[r[i].x,r[i].y]);
             i := i + 1;
         }
+        assert okRects(trects) && rectsInCover(trects);
 
         // wtf
-        i := 0;
+        /*i := 0;
         while (i < size_x)
             invariant 0 <= i <= size_x;
         {
@@ -150,9 +157,10 @@ class Couverture
                 j := j + 1;
             }
             i := i + 1;
-        }
+        }*/
 
         rects := trects;
+        assert okRects(rects) && rectsInCover(rects);
     }
 
     /*
