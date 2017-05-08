@@ -63,6 +63,30 @@ class Couverture
           ==> rectInCover(cover, cover[i,j])
     }
 
+    predicate method cannotMergeH(cover: array2<Rectangle>)
+        reads cover
+        requires cover != null
+        requires cover.Length0 > 0
+        requires cover.Length1 > 0
+        requires okRects(cover)
+        requires rectsInCover(cover)
+    {
+        forall y,ki,kj :: (0<=y<cover.Length1) && (0<=ki<kj<cover.Length0) && (cover[ki,y].isRoot) && (cover[kj,y].isRoot) && cover[ki,y].h == cover[kj,y].h
+        ==> !(cover[ki,y].x+cover[ki,y].w == cover[kj,y].x)
+    }
+
+    predicate method cannotMergeV(cover: array2<Rectangle>)
+        reads cover
+        requires cover != null
+        requires cover.Length0 > 0
+        requires cover.Length1 > 0
+        requires okRects(cover)
+        requires rectsInCover(cover)
+    {
+        forall x,ki,kj :: (0<=x<cover.Length0) && (0<=ki<kj<cover.Length1) && (cover[x,ki].isRoot) && (cover[x,kj].isRoot) && cover[x,ki].w == cover[x,kj].w
+        ==> !(cover[x,ki].y+cover[x,ki].h == cover[x,kj].y)
+    }
+
     /* Le constructeur de la classe Couverture prend un array de Rectangle en
      * paramètre et initialise la Couverture en trois étapes :
      * - Définir les limites en hauteur et largeur de la Couverture en inspectant
@@ -175,6 +199,8 @@ class Couverture
         //requires ok_bis()
         modifies rects
         ensures ok()
+        ensures okRects(rects)
+        ensures rectsInCover(rects)
     {
         var horizImprove:bool;
 	      if (rects.Length0 >= rects.Length1) {
@@ -283,12 +309,12 @@ class Couverture
     method improve(horizImprove:bool) returns (optimized: bool)
         requires ok()
         //requires ok_bis()
-        //requires okRects(rects)
-        //requires rectsInCover(rects)
+        requires okRects(rects)
+        requires rectsInCover(rects)
         modifies rects
         ensures ok()
-        //ensures okRects(rects)
-        //ensures rectsInCover(rects)
+        ensures okRects(rects)
+        ensures rectsInCover(rects)
     {
         //init
         var i,j,hack := 0,0,rects.Length0*rects.Length1;
