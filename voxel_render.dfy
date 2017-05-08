@@ -283,8 +283,12 @@ class Couverture
     method improve(horizImprove:bool) returns (optimized: bool)
         requires ok()
         //requires ok_bis()
+        //requires okRects(rects)
+        //requires rectsInCover(rects)
         modifies rects
         ensures ok()
+        //ensures okRects(rects)
+        //ensures rectsInCover(rects)
     {
         //init
         var i,j,hack := 0,0,rects.Length0*rects.Length1;
@@ -323,71 +327,87 @@ class Couverture
     method nextRectangle(r: Rectangle, horizImprove: bool) returns (ret:Rectangle)
         requires ok()
         // requires ok_bis()
-        // requires okRect(r)
-        // requires rectInCover(r)
-        // requires rectInCover(rects, r)
+        requires okRect(r)
+        requires rectInCover(rects, r)
+        requires okRects(rects)
+        requires rectsInCover(rects)
         ensures ok()
-        //ensures okRect(ret)
+        ensures okRect(ret)
+        ensures rectInCover(rects, ret)
+        ensures okRects(rects)
+        ensures rectsInCover(rects)
     {
         //Cas de base, parcours horizontal
-        if  (0 <= r.y < rects.Length1 && 0 <= r.x < rects.Length0) {
-            if (horizImprove) {
-                var ix := r.x + 1;
-                var iy := r.y;
-                var found := false;
-                while (iy < rects.Length1 && !found)
-                    invariant 0 <= iy <= rects.Length1;
-                    invariant 0 <= ix <= rects.Length0;
-                {
-                    while (ix < rects.Length0 && !found)
-                        invariant 0 <= ix <= rects.Length0;
-                    {
-                        if (rects[ix,iy].isRoot) {
-                            found := true;
-                            //NV// assert okRect(rects[ix,iy]);
-                            ret := rects[ix,iy];
-                        }
-                        ix := ix + 1;
-                    }
-                    ix := 0;
-                    iy := iy + 1;
-                }
-                if (!found) {
-                    var rec_temp := Rectangle("endOfCouv",0,0,1,1,false);
-                    assert okRect(rec_temp);
-                    ret := rec_temp;
-                }
-            } else {
-                var ix := r.x;
-                var iy := r.y+1;
-                var found := false;
+        if (horizImprove) {
+            var rec_temp:Rectangle := Rectangle("endOfCouv",0,0,1,1,false);
+            ret := rec_temp;
+
+            var ix := r.x + 1;
+            var iy := r.y;
+            var found := false;
+            while (iy < rects.Length1 && !found)
+                invariant 0 <= iy <= rects.Length1;
+                invariant 0 <= ix <= rects.Length0;
+                invariant okRects(rects) && rectsInCover(rects);
+                invariant okRect(ret) && rectInCover(rects, ret);
+            {
                 while (ix < rects.Length0 && !found)
-                    invariant 0 <= iy <= rects.Length1;
                     invariant 0 <= ix <= rects.Length0;
+                    invariant okRects(rects) && rectsInCover(rects);
+                    invariant okRect(ret) && rectInCover(rects, ret);
                 {
-                    while (iy < rects.Length1 && !found)
-                        invariant 0 <= iy <= rects.Length1;
-                    {
-                        if (rects[ix,iy].isRoot) {
-                            found := true;
-                            // NV//assert okRect(rects[ix,iy]);
-                            ret := rects[ix,iy];
-                        }
-                        iy := iy + 1;
+                    if (rects[ix,iy].isRoot) {
+                        found := true;
+                        //NV// assert okRect(rects[ix,iy]);
+                        ret := rects[ix,iy];
                     }
-                    iy := 0;
                     ix := ix + 1;
                 }
-                if (!found) {
-                    var rec_temp:Rectangle := Rectangle("endOfCouv",0,0,1,1,false);
-                    assert okRect(rec_temp);
-                    ret := rec_temp;
-                }
+                ix := 0;
+                iy := iy + 1;
             }
+            /*if (!found) {
+                var rec_temp:Rectangle := Rectangle("endOfCouv",0,0,1,1,false);
+                assert okRect(rec_temp);
+                assert rectInCover(rects, rec_temp);
+                ret := rec_temp;
+                assert okRect(ret);
+                assert rectInCover(rects, ret);
+            }*/
         } else {
-            var rec_temp := Rectangle("rxyOutOfBounds",0,0,1,1,false);
-            assert okRect(rec_temp);
+            var rec_temp:Rectangle := Rectangle("endOfCouv",0,0,1,1,false);
             ret := rec_temp;
+
+            var ix := r.x;
+            var iy := r.y+1;
+            var found := false;
+            while (ix < rects.Length0 && !found)
+                invariant 0 <= iy <= rects.Length1;
+                invariant 0 <= ix <= rects.Length0;
+                invariant okRects(rects) && rectsInCover(rects);
+                invariant okRect(ret) && rectInCover(rects, ret);
+            {
+                while (iy < rects.Length1 && !found)
+                    invariant 0 <= iy <= rects.Length1;
+                    invariant okRects(rects) && rectsInCover(rects);
+                    invariant okRect(ret) && rectInCover(rects, ret);
+                {
+                    if (rects[ix,iy].isRoot) {
+                        found := true;
+                        // NV//assert okRect(rects[ix,iy]);
+                        ret := rects[ix,iy];
+                    }
+                    iy := iy + 1;
+                }
+                iy := 0;
+                ix := ix + 1;
+            }
+            /*if (!found) {
+                var rec_temp:Rectangle := Rectangle("endOfCouv",0,0,1,1,false);
+                assert okRect(rec_temp);
+                assert rectInCover(rects, rec_temp);
+                ret := rec_temp;
+            }*/
         }
     }
 
