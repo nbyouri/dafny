@@ -12,7 +12,7 @@ function method absRect(r: Rectangle): seq<int>
 
 class Couverture
 {
-    var rects: array2<Rectangle>;
+    var rects :array2<Rectangle>;
 
     predicate ok()
         reads this, rects
@@ -63,6 +63,7 @@ class Couverture
           ==> rectInCover(cover, cover[i,j])
     }
 
+    /*
     predicate method cannotMergeH(cover: array2<Rectangle>)
         reads cover
         requires cover != null
@@ -85,6 +86,29 @@ class Couverture
     {
         forall x,ki,kj :: (0<=x<cover.Length0) && (0<=ki<kj<cover.Length1) && (cover[x,ki].isRoot) && (cover[x,kj].isRoot) && cover[x,ki].w == cover[x,kj].w
         ==> !(cover[x,ki].y+cover[x,ki].h == cover[x,kj].y)
+    }*/
+
+    predicate method optimizedCover(cover :array2<Rectangle>)
+        reads cover
+        requires cover != null
+        requires cover.Length0 > 0
+        requires cover.Length1 > 0
+        requires okRects(cover)
+        requires rectsInCover(cover)
+    {
+        forall i1, i2 , j1, j2
+        :: 0<=i1<cover.Length0
+        && 0<=i2<cover.Length0
+        && 0<=j1<cover.Length1
+        && 0<=j2<cover.Length1
+        && cover[i1,j1].isRoot
+        && cover[i2,j2].isRoot
+        && !(i1==i2 && j1==j2)
+        ==>
+        cover[i1,j1].x+cover[i1,j1].w == cover[i2,j2].x
+        || cover[i2,j2].x+cover[i2,j2].w == cover[i1,j1].x
+        || cover[i1,j1].y+cover[i1,j1].h == cover[i2,j2].y
+        || cover[i2,j2].y+cover[i2,j2].h == cover[i1,j1].y
     }
 
     /* Le constructeur de la classe Couverture prend un array de Rectangle en
@@ -197,27 +221,27 @@ class Couverture
     method optimize()
         requires ok()
         //requires ok_bis()
+        requires okRects(rects)
+        requires rectsInCover(rects)
+        modifies this
         modifies rects
         ensures ok()
         ensures okRects(rects)
         ensures rectsInCover(rects)
+        ensures optimizedCover(rects)
     {
+        //On choisit la première direction d'opti
         var horizImprove:bool;
 	      if (rects.Length0 >= rects.Length1) {
             horizImprove := true;
         } else {
             horizImprove := false;
         }
+
         var hack := rects.Length0 * rects.Length1;
         var opti := false;
-        while (!opti && hack > 0) {
-            opti := improve(horizImprove);
-            hack := hack - 1;
-        }
-        opti := false;
-        horizImprove := !horizImprove;
-        hack := rects.Length0 * rects.Length1;
-        while (!opti && hack>0) {
+        while(!opti && hack > 0)
+        {
             opti := improve(horizImprove);
             hack := hack - 1;
         }
@@ -229,8 +253,9 @@ class Couverture
      */
     method canMerge(a: Rectangle, b: Rectangle) returns (ret : bool)
         requires ok()
+        requires okRect(a) && okRect(b)
+        requires rectInCover(rects,a) && rectInCover(rects,b)
         ensures ok()
-        // needs okRect and rectInCover
     {
         //Cas horizontal
         var hMerge := a.x + a.w == b.x && a.h == b.h && a.y == b.y;
@@ -261,14 +286,12 @@ class Couverture
      */
     method merge(a: Rectangle, b: Rectangle, horizImprove:bool) returns (ret : Rectangle)
         requires ok()
-        // requires okRect(a) --> nextRectangle needs okRect as in postcondition
-        // requires okRect(b) --> same
-        //requires rectInCover(a) --> nextRectangle needs rectInCover in postconditions
-        //requires rectInCover(b) --> same
+        requires okRect(a) && okRect(b)
+        requires rectInCover(rects,a) && rectInCover(rects,b)
         modifies rects
         ensures ok()
-        // ensures okRect(ret) --> same
-        // ensures rectInCover(ret) --> same
+        ensures okRect(ret)
+        ensures rectInCover(rects,ret)
     {
         if (a.x < rects.Length0 && b.x < rects.Length0 &&
             a.y < rects.Length1 && b.y < rects.Length1 &&
@@ -317,28 +340,37 @@ class Couverture
         ensures rectsInCover(rects)
     {
         //init
-        var i,j,hack := 0,0,rects.Length0*rects.Length1;
+        var i,j := 0,0;
         var rect1 :Rectangle;
         if (rects[i,j].isRoot) {
             rect1 := rects[i,j];
         } else {
-            // NV // assert okRect(rects[i,j]);
             rect1 := nextRectangle(rects[i,j], horizImprove);
         }
-        //NV// assert okRect(rect1);
-        var rect2 :Rectangle := nextRectangle(rect1, horizImprove);
-        var cm :bool := canMerge(rect1,rect2);
+        var rect2 :Rectangle;
+        var cm :bool := false;
 
-        while (!cm && rect2.isRoot && hack > 0){
-            rect1 := rect2;
-            //NV// assert okRect(rect1);
+        //Pour chaque rect1
+        var hack1 := rects.Length0*rects.Length1;
+        while (!cm && rect1.isRoot && hack1 > 0)
+        {
             rect2 := nextRectangle(rect1, horizImprove);
-            cm := canMerge(rect1,rect2);
-            hack := hack - 1;
+            //Pour chaque rect2 après rect1
+            var hack2 := rects.Length0*rects.Length1;
+            while (!cm && rect2.isRoot && hack2 > 0)
+            {
+                rect2 := nextRectangle(rect2, horizImprove);
+                cm := canMerge(rect1,rect2);
+                hack2 := hack2 - 1;
+            }
+            if(!cm){
+                rect1 := nextRectangle(rect1, horizImprove);
+            }
+            hack1 := hack1 - 1;
         }
 
-        //we found a canMerge OR the couv is optimized
-        if (rect2.isRoot) {
+        //we found a canMerge ORELSE the couv is already optimized
+        if (cm) {
             var rect3 := merge(rect1, rect2, horizImprove);
             optimized := false;
         } else {
