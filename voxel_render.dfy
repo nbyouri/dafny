@@ -198,9 +198,10 @@ class Couverture
         requires ok()
         //requires ok_bis()
         modifies rects
-        ensures ok()
-        ensures okRects(rects)
-        ensures rectsInCover(rects)
+        //ensures ok()
+        //ensures okRects(rects)
+        //ensures rectsInCover(rects)
+        //ensures optimizedCover(...)
     {
         var horizImprove:bool;
 	      if (rects.Length0 >= rects.Length1) {
@@ -208,19 +209,18 @@ class Couverture
         } else {
             horizImprove := false;
         }
-        var hack := rects.Length0 * rects.Length1;
-        var opti := false;
-        while (!opti && hack > 0) {
-            opti := improve(horizImprove);
-            hack := hack - 1;
+        var optimize:bool;
+        optimize := false;
+        while(!optimize)
+        {
+            var bool_temp : bool;
+            bool_temp := improve(horizImprove);
+            if(!bool_temp){
+                optimize := true
+            }
         }
-        opti := false;
-        horizImprove := !horizImprove;
-        hack := rects.Length0 * rects.Length1;
-        while (!opti && hack>0) {
-            opti := improve(horizImprove);
-            hack := hack - 1;
-        }
+
+
     }
 
     /*
