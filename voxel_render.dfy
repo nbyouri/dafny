@@ -223,7 +223,6 @@ class Couverture
         //requires ok_bis()
         requires okRects(rects)
         requires rectsInCover(rects)
-        modifies this
         modifies rects
         ensures ok()
         ensures okRects(rects)
@@ -245,6 +244,8 @@ class Couverture
             opti := improve(horizImprove);
             hack := hack - 1;
         }
+
+
     }
 
     /*
