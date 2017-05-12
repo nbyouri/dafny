@@ -33,8 +33,6 @@ class Couverture
     {
         0 <= r.x < cover.Length0 &&
         0 <= r.y < cover.Length1
-        // 0 <= (x + rects[x,y].w) < rects.Length0 &&
-        // 0 <= (y + rects[x,y].h) < rects.Length1
     }
 
     predicate method okRects(cover: array2<Rectangle>)
@@ -57,31 +55,6 @@ class Couverture
         forall i,j :: 0 <= i < cover.Length0 && 0 <= j < cover.Length1
           ==> rectInCover(cover, cover[i,j])
     }
-
-    /*
-    predicate method cannotMergeH(cover: array2<Rectangle>)
-        reads cover
-        requires cover != null
-        requires cover.Length0 > 0
-        requires cover.Length1 > 0
-        requires okRects(cover)
-        requires rectsInCover(cover)
-    {
-        forall y,ki,kj :: (0<=y<cover.Length1) && (0<=ki<kj<cover.Length0) && (cover[ki,y].isRoot) && (cover[kj,y].isRoot) && cover[ki,y].h == cover[kj,y].h
-        ==> !(cover[ki,y].x+cover[ki,y].w == cover[kj,y].x)
-    }
-
-    predicate method cannotMergeV(cover: array2<Rectangle>)
-        reads cover
-        requires cover != null
-        requires cover.Length0 > 0
-        requires cover.Length1 > 0
-        requires okRects(cover)
-        requires rectsInCover(cover)
-    {
-        forall x,ki,kj :: (0<=x<cover.Length0) && (0<=ki<kj<cover.Length1) && (cover[x,ki].isRoot) && (cover[x,kj].isRoot) && cover[x,ki].w == cover[x,kj].w
-        ==> !(cover[x,ki].y+cover[x,ki].h == cover[x,kj].y)
-    }*/
 
     predicate method optimizedCover(cover :array2<Rectangle>)
         reads cover
@@ -132,7 +105,7 @@ class Couverture
         while (i < r.Length)
             invariant ((0 <= i <= r.Length) && (forall k :int :: k>=0 &&
             k<i ==> (r[k].x+r[k].w <= size_x) && (r[k].y+r[k].h <= size_y)) &&
-            (size_x>=1 && size_y>=1)); // TODO simplify
+            (size_x>=1 && size_y>=1));
         {
             if (r[i].x + r[i].w > size_x) {
                 size_x := r[i].x + r[i].w;
@@ -195,7 +168,6 @@ class Couverture
      */
     method optimize()
         requires ok()
-        //requires ok_bis()
         requires okRects(rects)
         requires rectsInCover(rects)
         modifies roots
@@ -203,7 +175,7 @@ class Couverture
         ensures ok()
         ensures okRects(rects)
         ensures rectsInCover(rects)
-        //ensures optimizedCover(rects)
+        //ensures optimizedCover(rects) //C'est ce qu'on devrait prouver, mais on y arrive pas
     {
         //On choisit la première direction d'opti
         var horizImprove:bool;
@@ -306,35 +278,6 @@ class Couverture
         }
 
         roots[0] := roots[0] - 1;
-        /*if (a.x < rects.Length0 && b.x < rects.Length0 &&
-            a.y < rects.Length1 && b.y < rects.Length1 &&
-            0 <= a.x && 0 <= a.y && 0 <= b.x && 0 <= b.y) {
-            if (horizImprove) {
-                if (a.x < b.x) {
-                    rects[a.x,a.y] := Rectangle(a.labe,a.x,a.y,a.w + b.w,a.h,true);
-                    rects[b.x,b.y] := Rectangle(b.labe,b.x,b.y,b.w,b.h,false);
-                    ret := rects[a.x,a.y];
-                    roots[0] := roots[0] - 1;
-                } else {
-                    rects[b.x,b.y] := Rectangle(b.labe,b.x,b.y,a.w + b.w,b.h,true);
-                    rects[a.x,a.y] := Rectangle(a.labe,a.x,a.y,a.w,a.h,false);
-                    ret := rects[b.x,b.y];
-                    roots[0] := roots[0] - 1;
-                }
-            } else {
-                if (a.y < b.y){
-                    rects[b.x,b.y] := Rectangle(b.labe,b.x,b.y,b.w,b.h,false);
-                    rects[a.x,a.y] := Rectangle(a.labe,a.x,a.y,a.w,a.h+b.h,true);
-                    ret := rects[a.x,a.y];
-                    roots[0] := roots[0] - 1;
-                } else {
-                    rects[b.x,b.y] := Rectangle(b.labe,b.x,b.y,a.w,b.h+a.h,true);
-                    rects[a.x,a.y] := Rectangle(a.labe,a.x,a.y,a.w,a.h,false);
-                    ret := rects[b.x,b.y];
-                    roots[0] := roots[0] - 1;
-                }
-            }
-        }*/
     }
 
     /*
@@ -426,9 +369,6 @@ class Couverture
         ensures ok()
         ensures okRect(ret)
         ensures rectInCover(rects, ret)
-        //ensures okRects(rects)
-        //ensures rectsInCover(rects)
-        //ensures roots[0] <= 1 ==> !ret.isRoot
     {
         //Cas de base, parcours horizontal
         if (horizImprove) {
