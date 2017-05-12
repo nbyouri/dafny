@@ -13,7 +13,7 @@ function method absRect(r: Rectangle): seq<int>
 class Couverture
 {
     var rects :array<Rectangle>;
-    var elem :int;
+    var roots :array<int>;
 
     predicate ok()
         reads this, rects
@@ -51,7 +51,6 @@ class Couverture
     }*/
 
     predicate method mergeable(a: Rectangle, b: Rectangle)
-        requires ok()
         requires okRect(a) && okRect(b)
     {
         (a.isRoot && b.isRoot) &&
@@ -63,8 +62,7 @@ class Couverture
 
     predicate method optimizedCover(cover :array<Rectangle>)
         reads cover
-        requires cover != null
-        requires cover.Length > 0
+        requires cover != null && cover.Length > 0
         requires okRects(cover)
     {
         forall i,j :: 0<=i<j<cover.Length
@@ -76,28 +74,35 @@ class Couverture
         requires r.Length >= 1
         requires forall k :: 0 <= k < r.Length ==> okRect(r[k]);
         modifies this
-        ensures fresh(rects)
+        //ensures fresh(rects)
         ensures ok()
         ensures okRects(rects)
     {
-        rects := new Rectangle[r.Length];
+        rects := r;
+        roots[0] := r.Length;
+        /*rects := new Rectangle[r.Length];
         var i := 0;
         while(i<r.Length)
+            invariant 0<=i<=r.Length
         {
             rects[i] := r[i];
-        }
+            i := i+1;
+        }*/
     }
 
     method optimize()
         requires ok()
         requires okRects(rects)
         modifies rects
+        modifies roots
         ensures ok()
         ensures okRects(rects)
         ensures optimizedCover(rects)
     {
         var opti := false;
         while(!opti)
+            invariant ok()
+            invariant okRects(rects)
         {
             opti := improve();
         }
@@ -129,137 +134,71 @@ class Couverture
         requires ok()
         requires okRect(rects[i]) && okRect(rects[j])
         modifies rects
+        modifies roots
         ensures ok()
         ensures okRect(ret)
+        ensures roots[0] < old(roots[0])
     {
         var a :Rectangle := rects[i];
         var b :Rectangle := rects[j];
 
         if(a.x <= b.x && a.y <= b.y){
-            ret := new Rectangle("rect", a.x, a.y, b.x+b.w-a.x, b.y+b.h-a.y, true);
+            ret := Rectangle("rect", a.x, a.y, b.x+b.w-a.x, b.y+b.h-a.y, true);
             rects[i] := ret;
-            rects[j].isRoot := false;
+            rects[j] := Rectangle("nonRoot", b.x, b.y, b.w, b.h, false);
         } else {
-            ret := new Rectangle("rect", b.x, b.y, a.x+a.w-b.x, a.y+a.h-b.y, true);
+            ret := Rectangle("rect", b.x, b.y, a.x+a.w-b.x, a.y+a.h-b.y, true);
             rects[j] := ret;
-            rects[i].isRoot := false;
+            rects[i] := Rectangle("nonRoot", a.x, a.y, a.w, a.h, false);
         }
+
+        roots[0] := roots[0] - 1;
     }
 
     method improve() returns (optimized: bool)
         requires ok()
         requires okRects(rects)
         modifies rects
+        modifies roots
         ensures ok()
         ensures okRects(rects)
+        ensures 0<=roots[0]<=old(roots[0])
     {
-        var rect1 :Rectangle := rects[0];
+        var i := 0;
+        var j := i+1;
+        var rect1 :Rectangle := rects[i];
         var rect2 :Rectangle;
+        var cm := false;
 
-        while(!cm && rect1.isRoot)
+        while(!cm && i<rects.Length)
+            invariant ok()
+            invariant okRects(rects)
+            invariant 0<=i<=rects.Length
+            invariant 0<=j<=rects.Length
         {
-            rect2 := nextRectangle(rect1);
-            while(!cm && rect2.isRoot)
+            j := i+1;
+            rect2 := rects[j];
+            while(!cm && j<rects.Length)
+                invariant ok()
+                invariant okRects(rects)
+                invariant 0<=i<=rects.Length
+                invariant 0<=j<=rects.Length
             {
-                rect2 := nextRectangle(rect2);
+                j := j+1;
+                rect2 := rects[j];
                 cm := canMerge(rect1, rect2);
             }
-            rect1 := nextRectangle(rect1);
+            if(!cm){
+                i := i+1;
+                rect1 := rects[i];
+            }
         }
-    }
 
-
-    method nextRectangle(r: Rectangle) returns (ret:Rectangle)
-        requires ok()
-        // requires ok_bis()
-        requires okRect(r)
-        requires rectInCover(rects, r)
-        requires okRects(rects)
-        requires rectsInCover(rects)
-        ensures ok()
-        ensures okRect(ret)
-        ensures rectInCover(rects, ret)
-        //ensures okRects(rects)
-        //ensures rectsInCover(rects)
-        ensures roots[0] <= 1 ==> !ret.isRoot
-    {
-        //Cas de base, parcours horizontal
-        if (horizImprove) {
-            var rec_temp:Rectangle := Rectangle("endOfCouv",0,0,1,1,false);
-            ret := rec_temp;
-
-            var ix := r.x + 1;
-            var iy := r.y;
-            var found := false;
-            while (iy < rects.Length1 && !found)
-                invariant 0 <= iy <= rects.Length1;
-                invariant 0 <= ix <= rects.Length0;
-                invariant okRects(rects) && rectsInCover(rects);
-                invariant okRect(ret) && rectInCover(rects, ret);
-            {
-                while (ix < rects.Length0 && !found)
-                    invariant 0 <= ix <= rects.Length0;
-                    invariant okRects(rects) && rectsInCover(rects);
-                    invariant okRect(ret) && rectInCover(rects, ret);
-                {
-                    if (rects[ix,iy].isRoot) {
-                        found := true;
-                        //NV// assert okRect(rects[ix,iy]);
-                        ret := rects[ix,iy];
-                    }
-                    ix := ix + 1;
-                }
-                ix := 0;
-                iy := iy + 1;
-            }
-            if(roots[0] <= 1){
-                ret := Rectangle("lastRoot",0,0,1,1,false);
-            }
-            /*if (!found) {
-                var rec_temp:Rectangle := Rectangle("endOfCouv",0,0,1,1,false);
-                assert okRect(rec_temp);
-                assert rectInCover(rects, rec_temp);
-                ret := rec_temp;
-                assert okRect(ret);
-                assert rectInCover(rects, ret);
-            }*/
+        if(cm){
+            optimized := false;
+            var rectTmp : Rectangle := merge(i,j);
         } else {
-            var rec_temp:Rectangle := Rectangle("endOfCouv",0,0,1,1,false);
-            ret := rec_temp;
-
-            var ix := r.x;
-            var iy := r.y+1;
-            var found := false;
-            while (ix < rects.Length0 && !found)
-                invariant 0 <= iy <= rects.Length1;
-                invariant 0 <= ix <= rects.Length0;
-                invariant okRects(rects) && rectsInCover(rects);
-                invariant okRect(ret) && rectInCover(rects, ret);
-            {
-                while (iy < rects.Length1 && !found)
-                    invariant 0 <= iy <= rects.Length1;
-                    invariant okRects(rects) && rectsInCover(rects);
-                    invariant okRect(ret) && rectInCover(rects, ret);
-                {
-                    if (rects[ix,iy].isRoot) {
-                        found := true;
-                        // NV//assert okRect(rects[ix,iy]);
-                        ret := rects[ix,iy];
-                    }
-                    iy := iy + 1;
-                }
-                iy := 0;
-                ix := ix + 1;
-            }
-            if(roots[0] <= 1){
-                ret := Rectangle("lastRoot",0,0,1,1,false);
-            }
-            /*if (!found) {
-                var rec_temp:Rectangle := Rectangle("endOfCouv",0,0,1,1,false);
-                assert okRect(rec_temp);
-                assert rectInCover(rects, rec_temp);
-                ret := rec_temp;
-            }*/
+            optimized := true;
         }
     }
 
@@ -277,16 +216,10 @@ class Couverture
     {
         print "\n";
         var y := 0;
-        while (y < rects.Length1)
-            invariant 0 <= y <= rects.Length1
+        while (y < rects.Length)
+            invariant 0 <= y <= rects.Length
         {
-            var x := 0;
-            while (x < rects.Length0)
-                invariant 0 <= x <= rects.Length0
-            {
-                toString(rects[x,y]);
-                x := x + 1;
-            }
+            toString(rects[y]);
             print "\n";
             y := y + 1;
         }
